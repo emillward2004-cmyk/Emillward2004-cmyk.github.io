@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gig Work Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+font-family:Arial;
+margin:20px;
+background:#f4f4f4;
+}
+
+h2{
+text-align:center;
+}
+
+input,button{
+width:100%;
+padding:10px;
+margin:5px 0;
+font-size:16px;
+}
+
+.card{
+background:white;
+padding:15px;
+border-radius:10px;
+margin-bottom:15px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+canvas{
+margin-top:20px;
+}
+
+.stat{
+font-size:18px;
+margin:4px 0;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Gig Work Tracker</h2>
+
+<div class="card">
+<input id="date" type="date">
+<input id="start" type="time">
+<input id="end" type="time">
+
+<input id="trips" type="number" placeholder="Trips">
+<input id="mileage" type="number" placeholder="Mileage">
+<input id="fuel" type="number" placeholder="Fuel Cost (£)">
+<input id="insurance" type="number" placeholder="Insurance Cost (£)">
+<input id="income" type="number" placeholder="Gross Income (£)">
+
+<button onclick="addEntry()">Add Entry</button>
+</div>
+
+<div class="card">
+<h3>Stats</h3>
+<div id="stats"></div>
+</div>
+
+<div class="card">
+<canvas id="incomeChart"></canvas>
+</div>
+
+<div class="card">
+<canvas id="tripChart"></canvas>
+</div>
+
+<script>
+
+let entries = JSON.parse(localStorage.getItem("gigData")) || []
+
+function addEntry(){
+
+let date=document.getElementById("date").value
+let start=document.getElementById("start").value
+let end=document.getElementById("end").value
+
+let trips=Number(document.getElementById("trips").value)
+let mileage=Number(document.getElementById("mileage").value)
+let fuel=Number(document.getElementById("fuel").value)
+let insurance=Number(document.getElementById("insurance").value)
+let income=Number(document.getElementById("income").value)
+
+let startTime=new Date("1970-01-01T"+start+":00")
+let endTime=new Date("1970-01-01T"+end+":00")
+
+let hours=(endTime-startTime)/3600000
+
+entries.push({
+date,trips,mileage,fuel,insurance,income,hours
+})
+
+localStorage.setItem("gigData",JSON.stringify(entries))
+
+updateStats()
+drawCharts()
+
+}
+
+function updateStats(){
+
+let trips=0
+let mileage=0
+let fuel=0
+let insurance=0
+let income=0
+let hours=0
+
+entries.forEach(e=>{
+trips+=e.trips
+mileage+=e.mileage
+fuel+=e.fuel
+insurance+=e.insurance
+income+=e.income
+hours+=e.hours
+})
+
+let net=income-(fuel+insurance)
+
+let avgTrips=trips/entries.length || 0
+let avgMileage=mileage/entries.length || 0
+let avgPay=income/entries.length || 0
+let incomePerHour=income/hours || 0
+let avgTripTime=(hours*60)/trips || 0
+
+document.getElementById("stats").innerHTML=`
+
+<div class="stat">Total Income: £${income.toFixed(2)}</div>
+<div class="stat">Net Income: £${net.toFixed(2)}</div>
+<div class="stat">Total Trips: ${trips}</div>
+<div class="stat">Total Mileage: ${mileage}</div>
+<div class="stat">Total Hours: ${hours.toFixed(2)}</div>
+
+<hr>
+
+<div class="stat">Average Trips: ${avgTrips.toFixed(2)}</div>
+<div class="stat">Average Mileage: ${avgMileage.toFixed(2)}</div>
+<div class="stat">Average Pay: £${avgPay.toFixed(2)}</div>
+<div class="stat">Income Per Hour: £${incomePerHour.toFixed(2)}</div>
+<div class="stat">Average Trip Time: ${avgTripTime.toFixed(2)} mins</div>
+
+`
+
+}
+
+let incomeChart
+let tripChart
+
+function drawCharts(){
+
+let labels=entries.map(e=>e.date)
+let incomeData=entries.map(e=>e.income)
+let tripData=entries.map(e=>e.trips)
+
+if(incomeChart) incomeChart.destroy()
+if(tripChart) tripChart.destroy()
+
+incomeChart=new Chart(
+document.getElementById("incomeChart"),
+{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Income (£)",
+data:incomeData
+}]
+}
+})
+
+tripChart=new Chart(
+document.getElementById("tripChart"),
+{
+type:"line",
+data:{
+labels:labels,
+datasets:[{
+label:"Trips",
+data:tripData
+}]
+}
+})
+
+}
+
+updateStats()
+drawCharts()
+
+</script>
+
+</body>
+</html>
