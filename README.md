@@ -1,28 +1,31 @@
-# UBER EATS PROFIT AND COST CALCULATOR
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Delivery Profit Tracker</title>
+<title>Delivery Tracker</title>
 
 <style>
 
 body{
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto;
 background:#0f172a;
 color:white;
 margin:0;
-padding:20px;
 }
 
-h1{
+header{
 text-align:center;
-margin-bottom:20px;
+padding:15px;
+font-size:20px;
+font-weight:bold;
+background:#020617;
 }
 
 .container{
-max-width:420px;
+padding:20px;
+max-width:500px;
 margin:auto;
 }
 
@@ -31,18 +34,12 @@ background:#1e293b;
 padding:18px;
 border-radius:14px;
 margin-bottom:16px;
-box-shadow:0 5px 20px rgba(0,0,0,0.4);
-}
-
-label{
-font-size:14px;
-opacity:.8;
 }
 
 input{
 width:100%;
 padding:12px;
-margin:6px 0 14px 0;
+margin:8px 0 14px 0;
 border-radius:10px;
 border:none;
 font-size:16px;
@@ -59,18 +56,36 @@ font-size:16px;
 font-weight:bold;
 }
 
-button:active{
-transform:scale(.98);
+.tabbar{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#020617;
+display:flex;
+justify-content:space-around;
+padding:10px 0;
 }
 
-.result{
-font-size:15px;
-margin:6px 0;
+.tab{
+color:white;
+font-size:13px;
+text-align:center;
+cursor:pointer;
+opacity:.7;
 }
 
-.history{
-max-height:220px;
-overflow-y:auto;
+.tab.active{
+opacity:1;
+}
+
+.page{
+display:none;
+padding-bottom:80px;
+}
+
+.page.active{
+display:block;
 }
 
 .shift{
@@ -81,10 +96,9 @@ margin-bottom:8px;
 font-size:14px;
 }
 
-.total{
-font-weight:bold;
-font-size:16px;
-margin-top:8px;
+.stat{
+margin:8px 0;
+font-size:15px;
 }
 
 </style>
@@ -92,46 +106,72 @@ margin-top:8px;
 
 <body>
 
+<header>🚗 Delivery Tracker</header>
+
 <div class="container">
 
-<h1>🚗 Delivery Tracker</h1>
+<div id="dashboard" class="page active">
+
+<div class="card">
+<div class="stat">Total Shifts: <span id="totalShifts">0</span></div>
+<div class="stat">Total Miles: <span id="totalMiles">0</span></div>
+<div class="stat">Total Income: £<span id="totalIncome">0</span></div>
+<div class="stat">Total Profit: £<span id="totalProfit">0</span></div>
+</div>
+
+</div>
+
+<div id="addshift" class="page">
 
 <div class="card">
 
-<label>Miles Driven</label>
-<input type="number" id="miles">
+<label>Miles</label>
+<input id="miles" type="number">
 
 <label>Fuel Cost (£)</label>
-<input type="number" id="fuel">
+<input id="fuel" type="number">
 
 <label>Insurance Cost (£)</label>
-<input type="number" id="insurance">
+<input id="insurance" type="number">
 
-<label>Gross Income (£)</label>
-<input type="number" id="income">
+<label>Income (£)</label>
+<input id="income" type="number">
 
 <button onclick="saveShift()">Save Shift</button>
 
 </div>
 
-<div class="card">
+</div>
 
-<div class="result">⛽ Fuel per mile: £<span id="fuelpm">0</span></div>
-<div class="result">🛡 Insurance per mile: £<span id="inspm">0</span></div>
-<div class="result">🚗 Cost per mile: £<span id="costpm">0</span></div>
-<div class="result">💰 Profit: £<span id="profit">0</span></div>
+<div id="history" class="page">
+
+<div class="card">
+<div id="shiftList"></div>
+</div>
 
 </div>
 
+<div id="stats" class="page">
+
 <div class="card">
 
-<h3>Shift History</h3>
-
-<div class="history" id="history"></div>
-
-<div class="total">Total Profit: £<span id="totalProfit">0</span></div>
+<div class="stat">Fuel per mile: £<span id="fuelpm">0</span></div>
+<div class="stat">Insurance per mile: £<span id="inspm">0</span></div>
+<div class="stat">Total cost per mile: £<span id="costpm">0</span></div>
+<div class="stat">Profit per mile: £<span id="profitpm">0</span></div>
 
 </div>
+
+</div>
+
+</div>
+
+<div class="tabbar">
+
+<div class="tab active" onclick="switchTab('dashboard',this)">Dashboard</div>
+<div class="tab" onclick="switchTab('addshift',this)">Add Shift</div>
+<div class="tab" onclick="switchTab('history',this)">History</div>
+<div class="tab" onclick="switchTab('stats',this)">Stats</div>
 
 </div>
 
@@ -139,26 +179,26 @@ margin-top:8px;
 
 let shifts = JSON.parse(localStorage.getItem("shifts")) || [];
 
+function switchTab(id,el){
+
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+
+document.getElementById(id).classList.add("active");
+el.classList.add("active");
+
+}
+
 function saveShift(){
 
-let miles = parseFloat(document.getElementById("miles").value);
-let fuel = parseFloat(document.getElementById("fuel").value);
-let insurance = parseFloat(document.getElementById("insurance").value);
-let income = parseFloat(document.getElementById("income").value);
+let miles=parseFloat(milesInput.value);
+let fuel=parseFloat(fuelInput.value);
+let insurance=parseFloat(insuranceInput.value);
+let income=parseFloat(incomeInput.value);
 
-if(!miles || !fuel || !insurance || !income) return;
-
-let fuelpm = fuel/miles;
-let inspm = insurance/miles;
-let costpm = (fuel+insurance)/miles;
 let profit = income - fuel - insurance;
 
-document.getElementById("fuelpm").innerText = fuelpm.toFixed(2);
-document.getElementById("inspm").innerText = inspm.toFixed(2);
-document.getElementById("costpm").innerText = costpm.toFixed(2);
-document.getElementById("profit").innerText = profit.toFixed(2);
-
-let shift = {
+let shift={
 date:new Date().toLocaleDateString(),
 miles,
 fuel,
@@ -171,22 +211,31 @@ shifts.push(shift);
 
 localStorage.setItem("shifts",JSON.stringify(shifts));
 
-renderHistory();
+update();
 
 }
 
-function renderHistory(){
+function update(){
 
-let history = document.getElementById("history");
-history.innerHTML="";
+let totalMiles=0;
+let totalFuel=0;
+let totalInsurance=0;
+let totalIncome=0;
+let totalProfit=0;
 
-let totalProfit = 0;
+let list=document.getElementById("shiftList");
+list.innerHTML="";
 
 shifts.slice().reverse().forEach(s=>{
 
-totalProfit += s.profit;
+totalMiles+=s.miles;
+totalFuel+=s.fuel;
+totalInsurance+=s.insurance;
+totalIncome+=s.income;
+totalProfit+=s.profit;
 
 let div=document.createElement("div");
+
 div.className="shift";
 
 div.innerHTML=`
@@ -195,15 +244,27 @@ Miles: ${s.miles} | Income: £${s.income}<br>
 Profit: £${s.profit.toFixed(2)}
 `;
 
-history.appendChild(div);
+list.appendChild(div);
 
 });
 
-document.getElementById("totalProfit").innerText = totalProfit.toFixed(2);
+document.getElementById("totalShifts").innerText=shifts.length;
+document.getElementById("totalMiles").innerText=totalMiles.toFixed(1);
+document.getElementById("totalIncome").innerText=totalIncome.toFixed(2);
+document.getElementById("totalProfit").innerText=totalProfit.toFixed(2);
+
+if(totalMiles>0){
+
+document.getElementById("fuelpm").innerText=(totalFuel/totalMiles).toFixed(2);
+document.getElementById("inspm").innerText=(totalInsurance/totalMiles).toFixed(2);
+document.getElementById("costpm").innerText=((totalFuel+totalInsurance)/totalMiles).toFixed(2);
+document.getElementById("profitpm").innerText=(totalProfit/totalMiles).toFixed(2);
 
 }
 
-renderHistory();
+}
+
+update();
 
 </script>
 
